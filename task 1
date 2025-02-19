@@ -1,0 +1,35 @@
+using System;
+using System.Text.RegularExpressions;
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Enter password: ");
+        string password = Console.ReadLine();
+
+        if (IsValidPassword(password))
+        {
+            Console.WriteLine("Password is valid.");
+        }
+        else
+        {
+            Console.WriteLine("Password is invalid.");
+        }
+    }
+
+    static bool IsValidPassword(string password)
+    {
+        
+        if (password.Length > 12)
+            return false;
+
+   
+        string pattern = @"^25(?=.[A-Z])(?=(?:[^sara][sara]
+        ){4,})(?=(?:[^!@#$%^&()_+={}[\]:;<>,.?/-][!@#$%^&*()_+={}[\]:;<>,.?/-]){2,}).{4,10}$";
+
+        return Regex.IsMatch(password, pattern);
+    }
+} 
+
+// passsword :25A@sara#X
