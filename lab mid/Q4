@@ -1,0 +1,108 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Program
+{
+    static Dictionary<string, List<string>> grammar = new Dictionary<string, List<string>>();
+    static HashSet<string> firstSet = new HashSet<string>();
+    static HashSet<string> visited = new HashSet<string>();
+
+    static void Main()
+    {
+        Console.WriteLine("Enter grammar rules (e.g., E->TX). Type 'end' to finish:");
+
+        while (true)
+        {
+            Console.Write("Rule: ");
+            string input = Console.ReadLine();
+
+            if (input.Trim().ToLower() == "end")
+                break;
+
+            if (!input.Contains("->"))
+            {
+                Console.WriteLine("Invalid format. Use 'A->something'");
+                continue;
+            }
+
+            string[] parts = input.Split("->");
+            string left = parts[0].Trim();
+            string[] right = parts[1].Split('|');
+
+            if (!grammar.ContainsKey(left))
+                grammar[left] = new List<string>();
+
+            foreach (var prod in right)
+                grammar[left].Add(prod.Trim());
+        }
+
+        // Check for left recursion or ambiguity
+        foreach (var rule in grammar)
+        {
+            foreach (var production in rule.Value)
+            {
+                if (production.StartsWith(rule.Key))
+                {
+                    Console.WriteLine("\nGrammar invalid for top-down parsing. (Left Recursion Detected)");
+                    return;
+                }
+
+                // Naive ambiguity check: same production multiple times
+                if (rule.Value.Count(x => x == production) > 1)
+                {
+                    Console.WriteLine("\nGrammar invalid for top-down parsing. (Ambiguity Detected)");
+                    return;
+                }
+            }
+        }
+
+        Console.WriteLine("\nGrammar is valid for top-down parsing.\n");
+
+        Console.WriteLine("Computing FIRST(E):");
+        firstSet = ComputeFirst("E");
+
+        Console.Write("FIRST(E) = { ");
+        Console.WriteLine(string.Join(", ", firstSet) + " }");
+    }
+
+    static HashSet<string> ComputeFirst(string nonTerminal)
+    {
+        HashSet<string> first = new HashSet<string>();
+
+        if (!grammar.ContainsKey(nonTerminal))
+        {
+            first.Add(nonTerminal); // terminal
+            return first;
+        }
+
+        foreach (string production in grammar[nonTerminal])
+        {
+            if (production == "ε")
+            {
+                first.Add("ε");
+            }
+            else
+            {
+                for (int i = 0; i < production.Length; i++)
+                {
+                    string symbol = production[i].ToString();
+
+                    if (symbol == " ")
+                        continue;
+
+                    var tempFirst = ComputeFirst(symbol);
+                    first.UnionWith(tempFirst.Where(t => t != "ε"));
+
+                    if (!tempFirst.Contains("ε"))
+                        break;
+
+                    if (i == production.Length - 1)
+                        first.Add("ε");
+                }
+            }
+        }
+
+        return first;
+    }
+}
