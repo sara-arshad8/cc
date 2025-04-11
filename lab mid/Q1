@@ -1,0 +1,52 @@
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Take input from user for x25, y, and z
+        Console.Write("Enter value for x25: ");
+        string userX = Console.ReadLine();
+
+        Console.Write("Enter value for y: ");
+        string userY = Console.ReadLine();
+
+        Console.Write("Enter value for z: ");
+        string userZ = Console.ReadLine();
+
+        // Build the input string using student ID-based variable name (x25)
+        string input = $"x25:{userX}; y:{userY}; z:{userZ}; result: x25 * y + z;";
+
+        // Extract values
+        int x25 = ExtractValue(input, "x25");
+        int y = ExtractValue(input, "y");
+        int z = ExtractValue(input, "z");
+
+        // Perform calculation: x * y + z
+        int result = x25 * y + z;
+
+        // Display results as required
+        Console.WriteLine($"\nx25 = {x25}");
+        Console.WriteLine($"y = {y}");
+        Console.WriteLine($"z = {z}");
+        Console.WriteLine($"Result = {result}");
+    }
+
+    static int ExtractValue(string input, string variable)
+    {
+        string[] parts = input.Split(';');
+        foreach (string part in parts)
+        {
+            string trimmed = part.Trim();
+            if (trimmed.StartsWith(variable + ":"))
+            {
+                string valuePart = trimmed.Substring(variable.Length + 1).Trim();
+                if (int.TryParse(valuePart, out int value))
+                {
+                    return value;
+                }
+            }
+        }
+        return 0;
+    }
+}
