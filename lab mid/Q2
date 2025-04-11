@@ -1,0 +1,41 @@
+using System;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Enter your code:");
+        string codeInput = Console.ReadLine();
+
+        // Pattern matches lines like: var a1 = 12@;
+        string pattern = @"(?<type>var|float|int|double)\s+(?<varName>[abc][a-zA-Z0-9]*)\s*=\s*(?<value>[^;]+);";
+
+        MatchCollection matches = Regex.Matches(codeInput, pattern);
+
+        Console.WriteLine("\nExtracted Tokens:");
+        Console.WriteLine("-----------------------------------------");
+        Console.WriteLine($"{"VarName",-10} | {"SpecialSymbol",-15} | {"Token Type",-10}");
+        Console.WriteLine("-----------------------------------------");
+
+        foreach (Match match in matches)
+        {
+            string varName = match.Groups["varName"].Value;
+            string value = match.Groups["value"].Value.Trim();
+            string type = match.Groups["type"].Value;
+
+            // Check if varName ends with digit AND value contains special symbol
+            if (Regex.IsMatch(varName, @"\d$") && Regex.IsMatch(value, @"[^a-zA-Z0-9.\s]"))
+            {
+                // Extract first special symbol from value
+                Match symbolMatch = Regex.Match(value, @"[^a-zA-Z0-9.\s]");
+                string specialSymbol = symbolMatch.Success ? symbolMatch.Value : "";
+
+                Console.WriteLine($"{varName,-10} | {specialSymbol,-15} | {type,-10}");
+            }
+        }
+
+        Console.WriteLine("-----------------------------------------");
+    }
+}
