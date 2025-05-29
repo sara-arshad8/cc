@@ -1,0 +1,201 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace SemanticAnalyzerLab
+{
+    class Program
+    {
+        static List<List<string>> Symboltable = new List<List<string>>();
+        static List<string> finalArray = new List<string>();
+        static List<int> Constants = new List<int>();
+        static Regex variable_Reg = new Regex(@"^[A-Za-z_][A-Za-z0-9]*$");
+        static bool if_deleted = false;
+
+        static void Main(string[] args)
+        {
+            InitializeSymbolTable();
+            InitializeFinalArray();
+            PrintLexerOutput();
+
+            for (int i = 0; i < finalArray.Count; i++)
+            {
+                Semantic_Analysis(i);
+            }
+
+            Console.WriteLine("\nSemantic Analysis Completed.");
+            Console.ReadLine();
+        }
+
+        static void InitializeSymbolTable()
+        {
+            Symboltable.Add(new List<string> { "x", "id", "int", "0" });
+            Symboltable.Add(new List<string> { "y", "id", "int", "0" });
+            Symboltable.Add(new List<string> { "i", "id", "int", "0" });
+            Symboltable.Add(new List<string> { "l", "id", "char", "0" });
+        }
+
+        static void InitializeFinalArray()
+        {
+            finalArray.AddRange(new string[] {
+                "int", "main", "(", ")", "{",
+                "int", "x", ";",
+                "x", ";",
+                "x", "=", "2", "+", "5", "+", "(", "4", "*", "8", ")", "+", "l", "/", "9.0", ";",
+                "if", "(", "x", "+", "y", ")", "{",
+                "if", "(", "x", "!=", "4", ")", "{",
+                "x", "=", "6", ";",
+                "y", "=", "10", ";",
+                "i", "=", "11", ";",
+                "}", "}",
+                "}"
+            });
+        }
+
+        static void PrintLexerOutput()
+        {
+            Console.WriteLine("Tokenizing src/main/resources/tests/lexer02.txt...");
+            int row = 1, col = 1;
+            foreach (string token in finalArray)
+            {
+                if (token == "int")
+                    Console.WriteLine($"INT ({row},{col})");
+                else if (token == "main")
+                    Console.WriteLine($"MAIN ({row},{col})");
+                else if (token == "(")
+                    Console.WriteLine($"LPAREN ({row},{col})");
+                else if (token == ")")
+                    Console.WriteLine($"RPAREN ({row},{col})");
+                else if (token == "{")
+                    Console.WriteLine($"LBRACE ({row},{col})");
+                else if (token == "}")
+                    Console.WriteLine($"RBRACE ({row},{col})");
+                else if (token == ";")
+                    Console.WriteLine($"SEMI ({row},{col})");
+                else if (token == "=")
+                    Console.WriteLine($"ASSIGN ({row},{col})");
+                else if (token == "+")
+                    Console.WriteLine($"PLUS ({row},{col})");
+                else if (token == "-")
+                    Console.WriteLine($"MINUS ({row},{col})");
+                else if (token == "*")
+                    Console.WriteLine($"TIMES ({row},{col})");
+                else if (token == "/")
+                    Console.WriteLine($"DIV ({row},{col})");
+                else if (token == "!=")
+                    Console.WriteLine($"NEQ ({row},{col})");
+                else if (Regex.IsMatch(token, @"^[0-9]+$"))
+                    Console.WriteLine($"INT_CONST ({row},{col}): {token}");
+                else if (Regex.IsMatch(token, @"^[0-9]+\.[0-9]+$"))
+                    Console.WriteLine($"FLOAT_CONST ({row},{col}): {token}");
+                else if (Regex.IsMatch(token, @"^[a-zA-Z]$"))
+                    Console.WriteLine($"CHAR_CONST ({row},{col}): {token}");
+                else if (variable_Reg.Match(token).Success)
+                    Console.WriteLine($"ID ({row},{col}): {token}");
+                else
+                    Console.WriteLine($"UNKNOWN ({row},{col}): {token}");
+
+                col += token.Length + 1;
+                if (token == ";") row++;
+            }
+            Console.WriteLine("EOF ({0},{1})", row, col);
+        }
+
+        static void Semantic_Analysis(int k)
+        {
+            if (k >= finalArray.Count) return;
+
+            if (finalArray[k] == "+" || finalArray[k] == "-")
+            {
+                if (k > 0 && k < finalArray.Count - 1 &&
+                    variable_Reg.Match(finalArray[k - 1]).Success &&
+                    variable_Reg.Match(finalArray[k + 1]).Success)
+                {
+                    string type = finalArray[k - 4];
+                    string left_side = finalArray[k - 3];
+                    string before = finalArray[k - 1];
+                    string after = finalArray[k + 1];
+
+                    int left_side_i = FindSymbol(left_side);
+                    int before_i = FindSymbol(before);
+                    int after_i = FindSymbol(after);
+
+                    if (type == Symboltable[before_i][2] && type == Symboltable[after_i][2])
+                    {
+                        int ans = Convert.ToInt32(Symboltable[before_i][3]) + Convert.ToInt32(Symboltable[after_i][3]);
+                        Constants.Add(ans);
+                    }
+
+                    if (Symboltable[left_side_i][2] == Symboltable[before_i][2] &&
+                        Symboltable[left_side_i][2] == Symboltable[after_i][2])
+                    {
+                        int ans = Convert.ToInt32(Symboltable[before_i][3]) + Convert.ToInt32(Symboltable[after_i][3]);
+                        if (Constants.Count > 0) Constants.RemoveAt(Constants.Count - 1);
+                        Constants.Add(ans);
+                        Symboltable[left_side_i][3] = ans.ToString();
+                    }
+                }
+            }
+
+            if (finalArray[k] == ">")
+            {
+                if (k > 0 && k < finalArray.Count - 1 &&
+                    variable_Reg.Match(finalArray[k - 1]).Success &&
+                    variable_Reg.Match(finalArray[k + 1]).Success)
+                {
+                    string before = finalArray[k - 1];
+                    string after = finalArray[k + 1];
+
+                    int before_i = FindSymbol(before);
+                    int after_i = FindSymbol(after);
+
+                    if (Convert.ToInt32(Symboltable[before_i][3]) > Convert.ToInt32(Symboltable[after_i][3]))
+                    {
+                        RemoveElseBlock();
+                    }
+                    else
+                    {
+                        RemoveIfBlock();
+                        if_deleted = true;
+                    }
+                }
+            }
+        }
+
+        static int FindSymbol(string name)
+        {
+            for (int i = 0; i < Symboltable.Count; i++)
+            {
+                if (Symboltable[i][0] == name)
+                    return i;
+            }
+            return -1;
+        }
+
+        static void RemoveElseBlock()
+        {
+            int start_of_else = finalArray.IndexOf("else");
+            int end_of_else = finalArray.Count - 1;
+            for (int i = end_of_else; i >= start_of_else; i--)
+            {
+                if (finalArray[i] == "}") { end_of_else = i; }
+            }
+
+            for (int i = start_of_else; i <= end_of_else; i++)
+            {
+                finalArray.RemoveAt(start_of_else);
+            }
+        }
+
+        static void RemoveIfBlock()
+        {
+            int start_of_if = finalArray.IndexOf("if");
+            int end_of_if = finalArray.IndexOf("}");
+
+            for (int i = start_of_if; i <= end_of_if; i++)
+            {
+                finalArray.RemoveAt(start_of_if);
+            }
+        }
+    }
+}
